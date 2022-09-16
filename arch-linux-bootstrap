@@ -15,11 +15,14 @@
 ### OPTIONS AND VARIABLES ### {{{1
 
 # Set default values {{{2
-dotfiles_repo="https://github.com/robert-lag/dotfiles.git"
 programs_file_url="https://raw.githubusercontent.com/robert-lag/arch-linux-bootstrap/master/programs.csv"
-aur_helper="yay"
+dotfiles_repo="https://github.com/robert-lag/dotfiles.git"
+scripts_repo="https://github.com/robert-lag/dotfiles.git"
 dotfiles_repo_branch="master"
+scripts_repo_branch="master"
+aur_helper="yay"
 dotfiles_directory=".dotfiles"
+scripts_directory=".local/bin"
 
 # Let the user specify custom values {{{2
 while getopts ":a:r:b:p:h" o; do case "${o}" in
@@ -28,20 +31,30 @@ while getopts ":a:r:b:p:h" o; do case "${o}" in
           (default: '$dotfiles_repo')
     -b    Set branch of dotfiles repository to install
           (default: '$dotfiles_repo_branch')
+    -s    Set scripts repository
+          (default: '$scripts_repo')
+    -c    Set branch of scripts repository to install
+          (default: '$scripts_repo_branch')
     -p    Set url of *.csv-file describing packages to install
           (default: '$programs_file_url')
     -a    Set name of AUR helper to install (must have pacman-like syntax)
           (default: '$aur_helper')
     -d    Set installation directory of dotfiles
           (default: '$dotfiles_directory')
+    -f    Set installation directory of scripts
+          (default: '$scripts_directory')
     -h    Show this message
 " && exit 1 ;;
     r) dotfiles_repo=${OPTARG} &&
         git ls-remote "$dotfiles_repo" || exit 1 ;;
     b) dotfiles_repo_branch=${OPTARG} ;;
-    d) dotfiles_directory=${OPTARG} ;;
+    s) scripts_repo=${OPTARG} &&
+        git ls-remote "$scripts_repo" || exit 1 ;;
+    c) scripts_repo_branch=${OPTARG} ;;
     p) programs_file_url=${OPTARG} ;;
     a) aur_helper=${OPTARG} ;;
+    d) dotfiles_directory=${OPTARG} ;;
+    f) scripts_directory=${OPTARG} ;;
     *) printf "Illegal option: -%s\\n" "$OPTARG" && exit 1 ;;
 esac done
 
@@ -53,7 +66,7 @@ install_pkg() { # Installs the specified package ($1) {{{2
     pacman --noconfirm --needed -S "$1" >/dev/null 2>&1
 }
 
-error() { # {{{2
+error() { # Show the specified error message ($1) and exits the script {{{2
     clear
     printf "ERROR:\\n%s\\n" "$1" >&2; exit 1
 }
@@ -91,7 +104,7 @@ get_username_and_password() { # Prompts user for new username an password. {{{2
     done
 }
 
-check_if_user_exists_already() { # {{{2
+check_if_user_exists_already()  { # Checks if the user to create exists already and informs the user about it {{{2
     ! { id -u "$username" >/dev/null 2>&1; } ||
         dialog --colors --title "WARNING!" \
             --yes-label "CONTINUE" \
@@ -110,8 +123,8 @@ add_user_with_password() { # Adds user `$username` with password $pass1. {{{2
     useradd -m -g wheel -s /bin/zsh "$username" >/dev/null 2>&1 ||
     usermod -a -G wheel "$username" && mkdir -p /home/"$username" && chown "$username":wheel /home/"$username"
 
-    mkdir -p "$repodir"
-    chown -R "$username":wheel "$(dirname "$repodir")"
+    mkdir -p "$source_code_dir"
+    chown -R "$username":wheel "$(dirname "$source_code_dir")"
 
     echo "$username:$pass1" | chpasswd
     unset pass1 pass2
@@ -128,7 +141,7 @@ It will take some time, but when done, you can relax even more with your complet
 Now just press <Let's go!> and the system will begin installation!" 13 60 || { clear; exit 1; }
 }
 
-refresh_keyring() { # {{{2
+refresh_keyring() { # Refreshes the arch linux keyring {{{2
     dialog --infobox "Refreshing Arch Linux Keyring..." 4 40
     pacman --noconfirm -S archlinux-keyring >/dev/null 2>&1
 }
@@ -158,42 +171,45 @@ main_install() { # Installs specified package ($1) from main repo {{{2
     install_pkg "$1"
 }
 
-gitmake_install() { # {{{2
-    progname="$(basename "$1" .git)"
-    dir="$repodir/$progname"
-    dialog --title "Arch-Bootstrap Installation" --infobox "Installing \`$progname\` ($package_index of $package_count) via \`git\` and \`make\`. $(basename "$1") $2" 5 70
-    sudo -u "$username" git clone --depth 1 "$1" "$dir" >/dev/null 2>&1 \
+gitmake_install() { # Installs the specified package ($1) using 'git clone' and 'make' {{{2
+    package_name="$(basename "$1" .git)"
+    destination_dir="$source_code_dir/$package_name"
+    dialog --title "Arch-Bootstrap Installation" --infobox "Installing \`$package_name\` ($package_index of $package_count) via \`git\` and \`make\`. $(basename "$1") $2" 5 70
+    sudo -u "$username" git clone --depth 10 "$1" "$destination_dir" >/dev/null 2>&1 \
         || {
-            cd "$dir" || return 1 ;
+            cd "$destination_dir" || return 1 ;
             sudo -u "$username" git pull --force origin master;
         }
-    cd "$dir" || exit 1
+    cd "$destination_dir" || exit 1
     make >/dev/null 2>&1
     make install >/dev/null 2>&1
     cd /tmp || return 1
 }
 
-aur_install() { # {{{2
+aur_install() { # Installs the specified package ($1) from the AUR using the AUR helper {{{2
     dialog --title "Arch-Bootstrap Installation" --infobox "Installing \`$1\` ($package_index of $package_count) from the AUR. $1 $2" 5 70
     echo "$aur_installed_programs" | grep -q "^$1$" && return 1
     sudo -u "$username" $aur_helper -S --noconfirm "$1" >/dev/null 2>&1
 }
 
-pip_install() { # {{{2
+pip_install() { # Installs the specified package ($1) using pip {{{2
     dialog --title "Arch-Bootstrap Installation" --infobox "Installing the Python package \`$1\` ($package_index of $package_count). $1 $2" 5 70
     [ -x "$(command -v "pip")" ] || install_pkg python-pip >/dev/null 2>&1
     yes | pip install "$1"
 }
 
-installationloop() { # {{{2
+install_all_packages() { # Installs all packages listed in the *.csv file {{{2
     ([ -f "$programs_file_url" ] &&
         cp "$programs_file_url" /tmp/progs.csv) ||
         curl -Ls "$programs_file_url" | sed '/^[#\/]/d' > /tmp/progs.csv
+
     package_count=$(wc -l < /tmp/progs.csv)
     aur_installed_programs=$(pacman -Qqm)
+
     while IFS=, read -r tag program comment; do
         package_index=$((package_index+1))
         echo "$comment" | grep -q "^\".*\"$" && comment="$(echo "$comment" | sed "s/\(^\"\|\"$\)//g")"
+
         case "$tag" in
             "A") aur_install "$program" "$comment" ;;
             "G") gitmake_install "$program" "$comment" ;;
@@ -203,18 +219,19 @@ installationloop() { # {{{2
     done < /tmp/progs.csv
 }
 
-putgitrepo() { # Downloads a gitrepo $1 and places the files in $2 only overwriting conflicts ($3 is the branch to download (default=master)) {{{2
-    dialog --infobox "Downloading and installing config files..." 4 60
-    [ -z "$3" ] && branch="master" || branch="$dotfiles_repo_branch"
-    dir=$(mktemp --directory)
+download_git_repo() { # Downloads a gitrepo $1 and places the files in $2 only overwriting conflicts ($3 is the branch to download (default=master)) {{{2
+    [ -z "$3" ] && branch="master" || branch="$3"
+    temp_dir=$(mktemp --directory)
     [ ! -d "$2" ] && mkdir --parents "$2"
-    chown "$username":wheel "$dir" "$2"
-    sudo -u "$username" git clone --branch "$branch" --depth 100 --recurse-submodules "$1" "$dir" >/dev/null 2>&1
-    sudo -u "$username" cp --recursive --force --no-target-directory "$dir" "$2"
+    chown "$username":wheel "$temp_dir" "$2"
+    sudo -u "$username" git clone --branch "$branch" --depth 100 --recurse-submodules "$1" "$temp_dir" >/dev/null 2>&1
+    sudo -u "$username" cp --recursive --force --no-target-directory "$temp_dir" "$2"
 }
 
-install_dotfiles() { # Installs and stows all dotfiles {{{2
-    putgitrepo "$dotfiles_repo" "/home/$username/$dotfiles_directory" "$dotfiles_repo_branch"
+install_dotfiles() { # Downloads and deploys all dotfiles {{{2
+    dialog --infobox "Downloading and deploying config files..." 4 60
+
+    download_git_repo "$dotfiles_repo" "/home/$username/$dotfiles_directory" "$dotfiles_repo_branch"
 
     # Link all dotfiles to their correct directories (using stow)
     dotfiles_path="/home/robert/.dotfiles"
@@ -222,8 +239,13 @@ install_dotfiles() { # Installs and stows all dotfiles {{{2
     do
         dir_name=$(basename "$dir")
         echo "### $dir_name ###"
-        stow --no --verbose=2 --dir="$dotfiles_path" "$dir_name"
+        stow --dir="$dotfiles_path" "$dir_name"
     done
+}
+
+download_scripts() { # Downloads all personal scripts {{{2
+    dialog --infobox "Downloading scripts..." 4 60
+    download_git_repo "$scripts_repo" "/home/$username/$scripts_directory" "$scripts_repo_branch"
 }
 
 show_finish_msg() { # Show finish message {{{2
@@ -253,7 +275,7 @@ show_welcomemsg || error "User exited."
 get_username_and_password || error "User exited."
 
 # Set folder paths for current user
-repodir="/home/$username/.local/src"
+source_code_dir="/home/$username/.local/src"
 
 # Give warning if user already exists
 check_if_user_exists_already || error "User exited."
@@ -297,11 +319,9 @@ manual_install $aur_helper || error "Failed to install AUR helper."
 
 ### Autmatic Installation {{{2
 
-# Install all programs described in the *.csv-file
-installationloop
-
-# Install the dotfiles
+install_all_packages
 install_dotfiles
+download_scripts
 
 ### Setup after installation {{{2
 
