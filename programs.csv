@@ -106,9 +106,6 @@ A,xbanish,"hides an inactive mouse."
 A,zsh,"is a shell that's slower than bash but has more features (used as interactive shell)."
 A,zsh-fast-syntax-highlighting,"provides syntax highlighting for zsh in the shell."
 
-/* TODO: Check if url is working (likely not) */
-G,https://github.com/slavistan/lf-gadgets/tree/master/lf-ueberzug,"makes it possible to preview files like pdfs and images in lf."
-
 /* Programs I'm currently trying out */
 ,taskell,"is a local trello alternative in the terminal."
 A,zaread-git,"makes it possible to open MS Office/LibreOffice documents with zathura."
