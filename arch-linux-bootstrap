@@ -107,15 +107,12 @@ get_username_and_password() { # Prompts user for new username an password. {{{2
 check_if_user_exists_already()  { # Checks if the user to create exists already and informs the user about it {{{2
     ! { id -u "$username" >/dev/null 2>&1; } ||
         dialog --colors --title "WARNING!" \
-            --yes-label "CONTINUE" \
+            --yes-label "Override User" \
             --no-label "No wait..." \
             --yesno "The user \`$username\` already exists on this system. Arch-Bootstrap can install for an already existing user,
 but it will \\Zboverwrite\\Zn any conflicting settings/dotfiles on the user account.
 
-Arch-Bootstrap will \\Zbnot\\Zn overwrite your user files, documents, videos, etc., so don't worry about that,
-but only click <CONTINUE> if you don't mind your settings being overwritten.
-
-Note also that Arch-Bootstrap will change $username's password to the one you just gave." 14 70
+It will also \\Zboverride\\Zn $username's password to the one you just gave." 14 70
 }
 
 add_user_with_password() { # Adds user `$username` with password $pass1. {{{2
@@ -136,9 +133,7 @@ show_preinstallmsg() { # {{{2
         --no-label "No, nevermind!" \
         --yesno "The rest of the installation will now be totally automated, so you can sit back and relax.
 
-It will take some time, but when done, you can relax even more with your complete system.
-
-Now just press <Let's go!> and the system will begin installation!" 13 60 || { clear; exit 1; }
+Press <Let's go!> to begin the installation!" 13 60 || { clear; exit 1; }
 }
 
 refresh_keyring() { # Refreshes the arch linux keyring {{{2
@@ -146,24 +141,29 @@ refresh_keyring() { # Refreshes the arch linux keyring {{{2
     pacman --noconfirm -S archlinux-keyring >/dev/null 2>&1
 }
 
-set_new_sudo_permissions() { # Set special sudoers settings for install (or after). {{{2
+reset_sudo_permissions() { # Reset changed sudoers settings {{{2
     # Delete old permissions in config file if it exists
     sed --in-place "/# Set by Arch-Bootstrap/d" /etc/sudoers
+}
 
+add_sudo_permissions() { # Set special sudoers settings for install (or after). {{{2
     # Create new line with the new permissions
     echo "$* # Set by Arch-Bootstrap" >> /etc/sudoers
 }
 
 manual_install() { # Installs $1 manually if not installed {{{2
-    [ -f "/usr/bin/$1" ] || (
+    if [ -f "/usr/bin/$1" ]; then
+        dialog --infobox "\"$1\" is already installed, skipping..." 4 50
+    else
         dialog --infobox "Installing \"$1\", an AUR helper..." 4 50
         cd /tmp || exit 1
         rm -rf /tmp/"$1"*
         curl -sO https://aur.archlinux.org/cgit/aur.git/snapshot/"$1".tar.gz &&
             sudo -u "$username" tar -xvf "$1".tar.gz >/dev/null 2>&1 &&
-        cd "$1" &&
+            cd "$1" &&
             sudo -u "$username" makepkg --noconfirm --syncdeps --install >/dev/null 2>&1
-        cd /tmp || return 1)
+        cd /tmp || return 1
+    fi
 }
 
 main_install() { # Installs specified package ($1) from main repo {{{2
@@ -293,7 +293,8 @@ add_user_with_password || error "Error adding username and/or password."
 
 # Allow user to run sudo without password. Since AUR programs must be installed
 # in a fakeroot environment, this is required for all builds with AUR.
-set_new_sudo_permissions "%wheel ALL=(ALL) NOPASSWD: ALL"
+reset_sudo_permissions
+add_sudo_permissions "%wheel ALL=(ALL) NOPASSWD: ALL"
 
 # Make pacman and yay colorful
 grep -q "^Color" /etc/pacman.conf || sed -i "s/^#Color$/Color/" /etc/pacman.conf
@@ -342,8 +343,9 @@ EndSection' > /etc/X11/xorg.conf.d/40-libinput.conf
 
 # This line, overwriting the `newperms` command above will allow the user to run
 # serveral important commands, `shutdown`, `reboot`, updating, etc. without a password.
-set_new_sudo_permissions "%wheel ALL=(ALL) ALL # Set by Arch-Bootstrap
-%wheel ALL=(ALL:ALL) NOPASSWD: /usr/bin/shutdown,/usr/bin/reboot,/usr/bin/systemctl suspend,/usr/bin/wifi-menu,/usr/bin/mount,/usr/bin/umount,/usr/bin/pacman -Syu,/usr/bin/pacman -Syyu,/usr/bin/pacman -Syyu --noconfirm,/usr/bin/loadkeys,/usr/bin/pacman -Syyuw --noconfirm,/usr/bin/pacman -Ss,/usr/bin/pacman -Q,/usr/bin/pacman -Qet"
+reset_sudo_permissions
+add_sudo_permissions "%wheel ALL=(ALL) ALL"
+add_sudo_permissions "%wheel ALL=(ALL:ALL) NOPASSWD: /usr/bin/shutdown,/usr/bin/reboot,/usr/bin/systemctl suspend,/usr/bin/wifi-menu,/usr/bin/mount,/usr/bin/umount,/usr/bin/pacman -Syu,/usr/bin/pacman -Syyu,/usr/bin/pacman -Syyu --noconfirm,/usr/bin/loadkeys,/usr/bin/pacman -Syyuw --noconfirm,/usr/bin/pacman -Ss,/usr/bin/pacman -Q,/usr/bin/pacman -Qet"
 
 show_finish_msg
 clear
