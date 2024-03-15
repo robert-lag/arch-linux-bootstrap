@@ -239,7 +239,7 @@ install_dotfiles() { # Downloads and deploys all dotfiles {{{2
     do
         dir_name=$(basename "$dir")
         echo "### $dir_name ###"
-        stow --dir="$dotfiles_path" "$dir_name"
+        sudo -u "$username" stow --dir="$dotfiles_path" "$dir_name"
     done
 }
 
@@ -265,8 +265,8 @@ command \"startx\" to start the graphical environment (it will start automatical
 ### User input {{{2
 
 # Check if user is root on Arch distro. Install dialog.
-# pacman --noconfirm --needed -Syu dialog ||
-#     error "Are you sure you're running this as the root user, are on an Arch-based distribution and have an internet connection?"
+pacman --noconfirm --needed -Syu dialog ||
+    error "Are you sure you're running this as the root user, are on an Arch-based distribution and have an internet connection?"
 
 # Welcome user and pick dotfiles
 show_welcomemsg || error "User exited."
@@ -307,14 +307,15 @@ grep -q "^ParallelDownloads" /etc/pacman.conf || sed -i "s/^#ParallelDownloads/P
 refresh_keyring || error "Error automatically refreshing Arch keyring. Consider doing so manually."
 
 # Install programs needed for installing other programs
-for x in curl base-devel git zsh; do
-    dialog --title "Arch-Bootstrap Installation"
+for x in curl base-devel git zsh stow; do
+    dialog --title "Arch-Bootstrap Installation" \
            --infobox "Installing \`$x\` which is required to install and configure other programs." 5 70
     install_pkg "$x"
 done
 
-# Use all cores for compilation
-sed -i "s/-j2/-j$(nproc)/;s/^#MAKEFLAGS/MAKEFLAGS/" /etc/makepkg.conf
+# Use 3/4 of available cores for compilation
+cores_for_compilation=$(expr $(nproc) \* 3 / 4)
+sed -i "s/-j[0-9]\+/-j${cores_for_compilation}/;s/^#MAKEFLAGS/MAKEFLAGS/" /etc/makepkg.conf
 
 # Manually install the AUR helper (further AUR installations can use aur_install)
 manual_install $aur_helper || error "Failed to install AUR helper."
