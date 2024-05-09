@@ -63,7 +63,7 @@ A,libxft-bgra,"is a patched version of libxft that allows displaying colored emo
 ,mpv,"is the patrician's choice video player."
 ,nautilus,"is a GUI file explorer used as a fallback."
 ,ncmpcpp,"is a ncurses interface for music with multiple formats and a powerful tag editor."
-,neofetch,"displays system information on the terminal."
+,fastfetch,"displays system information on the terminal."
 ,neovim,"is a tidier vim with some useful features."
 ,npm,"is a package manager for javascript."
 ,pandoc-cli,"can be used to convert from one markdown format to another (dependency of zaread)."
