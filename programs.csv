@@ -69,7 +69,7 @@ A,libxft-bgra,"is a patched version of libxft that allows displaying colored emo
 ,pandoc-cli,"can be used to convert from one markdown format to another (dependency of zaread)."
 ,ttf-hack-nerd,"is a monospace font that's patched to be able to display icons."
 ,newsboat,"is a terminal RSS client."
-A,notion-app,"is a note management software."
+A,notion-app-nativefier,"is a note management software."
 ,noto-fonts-emoji,"is an emoji font."
 ,ntfs-3g,"allows accessing NTFS partitions."
 ,okular,"is a pdf-viewer with tools for annoting pdfs."
@@ -141,13 +141,13 @@ A,zsh,"is a shell that's slower than bash but has more features (used as interac
 A,zaread-git,"makes it possible to open MS Office/LibreOffice documents with zathura."
 
 # Programs that I want to try out
-# ,xidlehook,"is a replacement for xautolock."
 # ,pulsemixer,"is an audio controller."
 # ,pamixer,"is a command-line audio interface."
 # A,task-spooler,"queues commands or files for download."
+# ,poppler,"manipulates .pdfs and gives .pdf previews and other .pdf functions."
 
 # Programs that I might not need
 # ,exfat-utils,"allows management of FAT drives."
 # ,highlight,"can highlight code output."
-# ,poppler,"manipulates .pdfs and gives .pdf previews and other .pdf functions."
+# ,xidlehook,"is a replacement for xautolock."
 
