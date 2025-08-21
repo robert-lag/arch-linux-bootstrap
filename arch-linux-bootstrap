@@ -340,6 +340,13 @@ sudo -u "$username" mkdir --parents "/home/$username/.cache/zsh/"
     Driver "libinput"
     # Enable left mouse button by tapping
     Option "Tapping" "on"
+    # Middle mouse button is emulated when tapping
+    # left and right at the same time
+    Option "MiddleEmulation" "on"
+    # Touchpad is disabled while typing
+    Option "DisableWhileTyping" "on"
+    # Reverse the scrolling direction
+    Option "NaturalScrolling" "on"
 EndSection' > /etc/X11/xorg.conf.d/40-libinput.conf
 
 # This line, overwriting the `newperms` command above will allow the user to run
