@@ -195,7 +195,7 @@ aur_install() { # Installs the specified package ($1) from the AUR using the AUR
 pip_install() { # Installs the specified package ($1) using pip {{{2
     dialog --title "Arch-Bootstrap Installation" --infobox "Installing the Python package \`$1\` ($package_index of $package_count). $1 $2" 5 70
     [ -x "$(command -v "pip")" ] || install_pkg python-pip >/dev/null 2>&1
-    yes | pip install "$1"
+    yes | pipx install "$1"
 }
 
 install_all_packages() { # Installs all packages listed in the *.csv file {{{2
@@ -307,7 +307,7 @@ grep -q "^ParallelDownloads" /etc/pacman.conf || sed -i "s/^#ParallelDownloads/P
 refresh_keyring || error "Error automatically refreshing Arch keyring. Consider doing so manually."
 
 # Install programs needed for installing other programs
-for x in curl base-devel git zsh stow; do
+for x in curl base-devel git zsh stow python-pipx; do
     dialog --title "Arch-Bootstrap Installation" \
            --infobox "Installing \`$x\` which is required to install and configure other programs." 5 70
     install_pkg "$x"
