@@ -73,6 +73,7 @@ A,libxft-bgra,"is a patched version of libxft that allows displaying colored emo
 ,ttf-hack-nerd,"is a monospace font that's patched to be able to display icons."
 ,newsboat,"is a terminal RSS client."
 A,notion-app-nativefier,"is a note management software."
+,noto-fonts-cjk,"is a font for displaying chinese, japanese, and korean."
 ,noto-fonts-emoji,"is an emoji font."
 ,nsxiv,"is a minimalist image viewer."
 ,ntfs-3g,"allows accessing NTFS partitions."
